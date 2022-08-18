@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "express": "^4.18.1",
+    "fontname": "^1.0.0",
+    "http": "^0.0.1-security",
+    "https": "^1.0.0",
+    "puppeteer": "^15.5.0",
+    "request": "^2.88.2"
+  },
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "fontgrabber.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

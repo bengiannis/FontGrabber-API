@@ -461,10 +461,7 @@ const port = 8080;
 app.get('/fonts', async function(req, res) {
   if (!browser) {
     browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        `--proxy-server=${proxyServer}`
-      ]
+      headless: true
     });
   }
 

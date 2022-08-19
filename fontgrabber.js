@@ -473,6 +473,7 @@ app.get('/fonts', async function(req, res) {
   }
   if (urlToFetch && isValidHttpUrl(urlToFetch)) {
     try {
+      console.log("Grabbing", urlToFetch);
       var fonts = await grabFonts(urlToFetch);
       res.send(fonts);
     }

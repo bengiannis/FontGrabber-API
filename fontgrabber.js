@@ -203,7 +203,7 @@ async function grabFonts(urlToFetch) {
   try {
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath: "node_modules/puppeteer/.local-chromium/*/*/chrome"//,
+      executablePath: "node_modules/puppeteer/.local-chromium/linux-1022525/chrome-linux/chrome"//,
       //args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     

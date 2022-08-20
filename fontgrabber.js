@@ -5,8 +5,10 @@ const FontName = require('fontname');
 const http = require('http');
 const https = require('https');
 const { match } = require('assert');
+const { url } = require('inspector');
 
 var debug = (process.env.DEBUG);
+var logProgress = true;
 
 var browser;
 
@@ -202,14 +204,25 @@ function timeout(ms) {
 }
 
 async function grabFonts(urlToFetch) {
-  try {    
+  try {
+    if (logProgress) {
+      console.log("Creating new page");
+    }
     const page = await browser.newPage();
     
     await page.setCacheEnabled(false);
 
     await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36")
 
+    if (logProgress) {
+      console.log("Loading", urlToFetch);
+    }
+
     await page.goto(urlToFetch);
+
+    if (logProgress) {
+      console.log("Done loading", urlToFetch);
+    }
     
     /*await page.goto(urlToFetch, {
       waitUntil: 'networkidle0',
@@ -233,6 +246,9 @@ async function grabFonts(urlToFetch) {
     });
     console.log("All Document Content:", allDocumentContent);*/
 
+    if (logProgress) {
+      console.log("Loading externalCSSPages");
+    }
     let externalCSSPages = await page.evaluate(() => {
       try {
         const allCssStyleSheetsLinks = [];
@@ -249,6 +265,10 @@ async function grabFonts(urlToFetch) {
         return {"error": "Error parsing external CSS content", "errorMessage": e.message};
       }
     });
+    if (logProgress) {
+      console.log("Done loading externalCSSPages");
+      console.log("Loading internalCSSContent");
+    }
     let internalCSSContent = await page.evaluate(() => {
       try {
         var allCssStyleTagContent = [];
@@ -265,6 +285,10 @@ async function grabFonts(urlToFetch) {
         return {"error": "Error parsing internal CSS content", "errorMessage": e.message};
       }
     });
+    if (logProgress) {
+      console.log("Done loading internalCSSContent");
+      console.log("Loading inlineCSSContent");
+    }
     let inlineCSSContent = await page.evaluate(() => {
       try {
         var allCssInlineContent = [];
@@ -283,10 +307,16 @@ async function grabFonts(urlToFetch) {
         return {"error": "Error parsing inline CSS content", "errorMessage": e.message};
       }
     });
+    if (logProgress) {
+      console.log("Done loading inlineCSSContent");
+    }
 
     var fontFaceInstances = []
     var fontFamilyInstances = []
 
+    if (logProgress) {
+      console.log("Parsing externalCSSPages");
+    }
     for (const externalCSSPage of externalCSSPages) {
       try {
         var externalCSSPageContent;
@@ -309,6 +339,10 @@ async function grabFonts(urlToFetch) {
         console.log("Error fetching and/or parsing externalCSSPage:", e.message);
       }
     }
+    if (logProgress) {
+      console.log("Done parsing externalCSSPages");
+      console.log("Parsing internalCSSContent");
+    }
     for (const internalCSS of internalCSSContent) {
       try {
         var fontFacesInContent = doRegexAll(internalCSS, /@font-face\s?{((.|\n)*?)}/g);
@@ -323,6 +357,10 @@ async function grabFonts(urlToFetch) {
       catch(e) {
         console.log("Error parsing internalCSSContent:", e.message);
       }
+    }
+    if (logProgress) {
+      console.log("Done parsing internalCSSContent");
+      console.log("Parsing inlineCSSContent");
     }
     for (const inlineCss of inlineCSSContent) {
       try {
@@ -339,12 +377,18 @@ async function grabFonts(urlToFetch) {
         console.log("Error parsing inlineCSSContent:", e.message);
       }
     }
+    if (logProgress) {
+      console.log("Done parsing inlineCSSContent");
+    }
 
     //console.log(externalCSSPages, internalCSSContent, inlineCSSContent);
 
     var primaryFonts = [];
     var backupFonts = [];
 
+    if (logProgress) {
+      console.log("Finding fontFaceInstances");
+    }
     for (let i = 0; i < fontFaceInstances.length; i++) {
       const fontFaceInstanceItem = fontFaceInstances[i];
       const fontFaceInstance = fontFaceInstanceItem["content"];
@@ -415,6 +459,10 @@ async function grabFonts(urlToFetch) {
         }
       }
     }
+    if (logProgress) {
+      console.log("Done finding fontFaceInstances");
+      console.log("Finding fontFamilyInstances");
+    }
     for (let i = 0; i < fontFamilyInstances.length; i++) {
       const fontFamilyLineItem = fontFamilyInstances[i];
       const fontFamilyLine = fontFamilyLineItem["content"];
@@ -433,8 +481,11 @@ async function grabFonts(urlToFetch) {
         }
       }
     }
+    if (logProgress) {
+      console.log("Done finding fontFamilyInstances");
+    }
 
-    await browser.close();
+    //await browser.close();
 
     console.log("Success:", urlToFetch, "->", primaryFonts.length+backupFonts.length, "font" + ((primaryFonts.length+backupFonts.length == 1) ? "" : "s"), "found")
     return {"stylesheets": {"external": externalCSSPages.length, "internal": internalCSSContent.length, "inline": inlineCSSContent.length}, "fonts": {"primary": primaryFonts, "backup": backupFonts}};
@@ -458,6 +509,9 @@ const port = 8080;
 
 app.get('/fonts', async function(req, res) {
   if (!browser) {
+    if (logProgress) {
+      console.log("Starting browser");
+    }
     if (debug || true) {
       browser = await puppeteer.launch({
         headless: true

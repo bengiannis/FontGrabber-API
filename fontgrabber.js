@@ -6,6 +6,8 @@ const http = require('http');
 const https = require('https');
 const { match } = require('assert');
 
+var debug = (process.env.DEBUG);
+
 var browser;
 
 function asyncRequest(url) {
@@ -456,11 +458,18 @@ const port = 8080;
 
 app.get('/fonts', async function(req, res) {
   if (!browser) {
-    browser = await puppeteer.launch({
-      headless: true,
-      executablePath: "node_modules/puppeteer/.local-chromium/linux-1022525/chrome-linux/chrome"//,
-      //args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    if (debug || true) {
+      browser = await puppeteer.launch({
+        headless: true
+      });
+    }
+    else {
+      browser = await puppeteer.launch({
+        headless: true,
+        executablePath: "node_modules/puppeteer/.local-chromium/linux-1022525/chrome-linux/chrome"//,
+        //args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+    }
   }
 
   var urlToFetch = req.query.url;

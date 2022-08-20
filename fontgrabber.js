@@ -200,13 +200,7 @@ function timeout(ms) {
 }
 
 async function grabFonts(urlToFetch) {
-  try {
-    const browser = await puppeteer.launch({
-      headless: true,
-      executablePath: "node_modules/puppeteer/.local-chromium/linux-1022525/chrome-linux/chrome"//,
-      //args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    
+  try {    
     const page = await browser.newPage();
     
     await page.setCacheEnabled(false);
@@ -463,7 +457,9 @@ const port = 8080;
 app.get('/fonts', async function(req, res) {
   if (!browser) {
     browser = await puppeteer.launch({
-      headless: true
+      headless: true,
+      executablePath: "node_modules/puppeteer/.local-chromium/linux-1022525/chrome-linux/chrome"//,
+      //args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
   }
 

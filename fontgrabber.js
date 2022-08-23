@@ -473,15 +473,18 @@ async function grabFonts(urlToFetch) {
       }
 
       var fontFaceWeightValue;
-      fontFaceWeight = fontFaceWeight.trim();
-      if (fontFaceWeight.toLowerCase() == "regular") {
-        fontFaceWeightValue = "400";
-      }
-      else if (fontFaceWeight.toLowerCase() == "bold") {
-        fontFaceWeightValue = "700";
-      }
-      else {
-        fontFaceWeightValue = fontFaceWeight.toString();
+      console.log(typeof fontFaceWeight);
+      if (fontFaceWeight) {
+        fontFaceWeight = fontFaceWeight.trim();
+        if (fontFaceWeight.toLowerCase() == "regular") {
+          fontFaceWeightValue = "400";
+        }
+        else if (fontFaceWeight.toLowerCase() == "bold") {
+          fontFaceWeightValue = "700";
+        }
+        else {
+          fontFaceWeightValue = fontFaceWeight.toString();
+        }
       }
 
       if (fontFaceName && fontFaceName.length > 0) {

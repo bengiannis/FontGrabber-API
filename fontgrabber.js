@@ -17,11 +17,13 @@ function asyncRequest(url) {
     const page = await browser.newPage();
     await page.setCacheEnabled(false);
     await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36");
+    await page.goto(url, {
+      waitUntil: 'networkidle0'
+    });
     page.on('response', async response => {
       const pageContent = await response.text();
       resolve(pageContent);
     });
-    await page.goto(url);
     await page.close();
   });
 }
@@ -219,7 +221,9 @@ async function grabFonts(urlToFetch) {
       console.log("Loading", urlToFetch);
     }
 
-    await page.goto(urlToFetch);
+    await page.goto(urlToFetch, {
+      waitUntil: 'networkidle0'
+    });
 
     if (logProgress) {
       console.log("Done loading", urlToFetch);

@@ -310,6 +310,7 @@ async function grabFonts(urlToFetch) {
     if (logProgress) {
       console.log("Done loading inlineCSSContent");
     }
+    let importedCSSPages = [];
 
     var fontFaceInstances = []
     var fontFamilyInstances = []
@@ -334,6 +335,14 @@ async function grabFonts(urlToFetch) {
         for (const fontFamilyInContent of fontFamiliesInContent) {
           fontFamilyInstances.push({"url": externalCSSPage, "content": fontFamilyInContent});
         }
+        var moreImportedCSSPages = doRegexAll(externalCSSPageContent, /@import\s?url\((.*?)\)/g);
+        if (moreImportedCSSPages) {
+          console.log("FIRST", moreImportedCSSPages, typeof moreImportedCSSPages);
+          for (const moreImportedCSSPage of moreImportedCSSPages) {
+            console.log("NOW", moreImportedCSSPage);
+            importedCSSPages.push(moreImportedCSSPage.trim().replace(/['"]+/g, ''));
+          }
+        }
       }
       catch(e) {
         console.log("Error fetching and/or parsing externalCSSPage:", e.message);
@@ -353,6 +362,12 @@ async function grabFonts(urlToFetch) {
         for (const fontFamilyInContent of fontFamiliesInContent) {
           fontFamilyInstances.push({"url": urlToFetch, "content": fontFamilyInContent});
         }
+        var moreImportedCSSPages = doRegexAll(internalCSS, /@import\s?url\((.*?)\)/g);
+        if (moreImportedCSSPages) {
+          for (const moreImportedCSSPage of moreImportedCSSPages) {
+            importedCSSPages.push(moreImportedCSSPage.trim().replace(/['"]+/g, ''));
+          }
+        }
       }
       catch(e) {
         console.log("Error parsing internalCSSContent:", e.message);
@@ -360,6 +375,41 @@ async function grabFonts(urlToFetch) {
     }
     if (logProgress) {
       console.log("Done parsing internalCSSContent");
+      console.log("Parsing importedCSSPages");
+    }
+    console.log("HERE", importedCSSPages.length, importedCSSPages);
+    for (let i = 0; i < importedCSSPages.length; i++) {
+      const importedCSSPage = importedCSSPages[i];
+      console.log("BAM", importedCSSPage);
+      try {
+        var importedCSSPageContent;
+        if (importedCSSPage.includes("://fonts.googleapis.com")) {
+          importedCSSPageContent = await asyncRequestManual(importedCSSPage);
+        }
+        else {
+          importedCSSPageContent = await asyncRequest(importedCSSPage);
+        }
+        var fontFacesInContent = doRegexAll(importedCSSPageContent, /@font-face\s?{((.|\n)*?)}/g);
+        var fontFamiliesInContent = doRegexAll(importedCSSPageContent, /font-family\s?:\s((.|\n)*?)(;|})/g);
+        for (const fontFaceInContent of fontFacesInContent) {
+          fontFaceInstances.push({"url": importedCSSPage, "content": fontFaceInContent});
+        }
+        for (const fontFamilyInContent of fontFamiliesInContent) {
+          fontFamilyInstances.push({"url": importedCSSPage, "content": fontFamilyInContent});
+        }
+        var moreImportedCSSPages = doRegexAll(importedCSSPageContent, /@import\s?url\((.*?)\)/g);
+        if (moreImportedCSSPages) {
+          for (const moreImportedCSSPage of moreImportedCSSPages) {
+            importedCSSPages.push(moreImportedCSSPage.trim().replace(/['"]+/g, ''));
+          }
+        }
+      }
+      catch(e) {
+        console.log("Error fetching and/or parsing importedCSSPage:", e.message);
+      }
+    }
+    if (logProgress) {
+      console.log("Done parsing importedCSSPages");
       console.log("Parsing inlineCSSContent");
     }
     for (const inlineCss of inlineCSSContent) {

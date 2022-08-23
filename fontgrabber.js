@@ -18,7 +18,7 @@ function asyncRequest(url) {
     await page.setCacheEnabled(false);
     await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36");
     await page.goto(url, {
-      waitUntil: 'networkidle0'
+      waitUntil: 'networkidle2'
     });
     page.on('response', async response => {
       const pageContent = await response.text();
@@ -222,7 +222,7 @@ async function grabFonts(urlToFetch) {
     }
 
     await page.goto(urlToFetch, {
-      waitUntil: 'networkidle0'
+      waitUntil: 'networkidle2'
     });
 
     if (logProgress) {

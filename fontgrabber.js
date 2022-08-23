@@ -72,6 +72,17 @@ function doRegexAll(input, regex) {
   return output;
 }*/
 
+function isRealFont(fontName) {
+  var notRealFonts = ["sans-serif", "serif", "cursive", "monospace", "initial", "inherit", "-apple-system", "BlinkMacSystemFont", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "system-ui"];
+  var notRealFontSearches = [/font\s?awesome/i];
+  for (const fontSearch of notRealFontSearches) {
+    if (fontSearch.test(fontName)) {
+      return false;
+    }
+  }
+  return (!notRealFonts.includes(fontName))
+}
+
 function extractFontNamesFromLine(input) {
   //input: 'SF Pro', "Helvetica", Arial, sans-serif
   //output: ["SF Pro", "Helvetica", "Arial"]
@@ -84,8 +95,7 @@ function extractFontNamesFromLine(input) {
   for (let i = 0; i < individualFonts.length; i++) {
     const individualFont = individualFonts[i];
     var fontName = individualFont.trim().replace(/['"]+/g, '');
-    var notRealFonts = ["sans-serif", "serif", "cursive", "monospace", "initial", "inherit", "-apple-system", "BlinkMacSystemFont", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "system-ui"];
-    if (!notRealFonts.includes(fontName)) {
+    if (isRealFont(fontName)) {
       if (i == 0) {
         primaryFontNames.push(fontName);
       }
@@ -342,9 +352,7 @@ async function grabFonts(urlToFetch) {
         }
         var moreImportedCSSPages = doRegexAll(externalCSSPageContent, /@import\s?url\((.*?)\)/g);
         if (moreImportedCSSPages) {
-          console.log("FIRST", moreImportedCSSPages, typeof moreImportedCSSPages);
           for (const moreImportedCSSPage of moreImportedCSSPages) {
-            console.log("NOW", moreImportedCSSPage);
             importedCSSPages.push(moreImportedCSSPage.trim().replace(/['"]+/g, ''));
           }
         }
@@ -382,10 +390,8 @@ async function grabFonts(urlToFetch) {
       console.log("Done parsing internalCSSContent");
       console.log("Parsing importedCSSPages");
     }
-    console.log("HERE", importedCSSPages.length, importedCSSPages);
     for (let i = 0; i < importedCSSPages.length; i++) {
       const importedCSSPage = importedCSSPages[i];
-      console.log("BAM", importedCSSPage);
       try {
         var importedCSSPageContent;
         if (importedCSSPage.includes("://fonts.googleapis.com")) {
@@ -480,6 +486,9 @@ async function grabFonts(urlToFetch) {
 
       if (fontFaceName && fontFaceName.length > 0) {
         fontFaceName = extractSingleFontNameFromLine(fontFaceName);
+        if (!isRealFont(fontFaceName)) {
+          continue;
+        }
         if (fontFaceURL && fontFaceURL.length > 0) {
           fontFaceURL = fontFaceURL.replace("\\ ", "%20");
           fontFaceURL = directUrlGivenRelativeUrl(fontFaceURL, fontFaceCssSource);

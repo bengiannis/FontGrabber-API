@@ -22,6 +22,7 @@ function asyncRequest(url) {
       resolve(pageContent);
     });
     await page.goto(url);
+    await page.close();
   });
 }
 
@@ -504,7 +505,7 @@ async function grabFonts(urlToFetch) {
         }
         else {
           if (!primaryFonts.some(e => e["name"] == fontFaceName)) {
-            primaryFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName, "src": fontFaceURL, "weight": fontFaceWeightValue}]});
+            backupFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName, "src": fontFaceURL, "weight": fontFaceWeightValue}]});
           }
         }
       }
@@ -521,7 +522,7 @@ async function grabFonts(urlToFetch) {
       for (let j = 0; j < fontFaceNames["primary"].length; j++) {
         var fontFaceName = fontFaceNames["primary"][j];
         if (!primaryFonts.some(e => e["name"] == fontFaceName)) {
-            primaryFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName}]});
+            backupFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName}]});
         }
       }
       for (let j = 0; j < fontFaceNames["backup"].length; j++) {
@@ -535,7 +536,7 @@ async function grabFonts(urlToFetch) {
       console.log("Done finding fontFamilyInstances");
     }
 
-    //await browser.close();
+    await page.close();
 
     console.log("Success:", urlToFetch, "->", primaryFonts.length+backupFonts.length, "font" + ((primaryFonts.length+backupFonts.length == 1) ? "" : "s"), "found")
     return {"stylesheets": {"external": externalCSSPages.length, "internal": internalCSSContent.length, "inline": inlineCSSContent.length}, "fonts": {"primary": primaryFonts, "backup": backupFonts}};

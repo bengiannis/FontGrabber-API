@@ -533,7 +533,7 @@ async function grabFonts(urlToFetch) {
           fontFaceURL = directUrlGivenRelativeUrl(fontFaceURL, fontFaceCssSource);
 
           var parsedFontName = await parseFontNameFromUrl(fontFaceURL);
-          if (parsedFontName && !("error" in parsedFontName)) {
+          if (parsedFontName && (parsedFontName.toLowerCase() == "undefined") && !("error" in parsedFontName)) {
             parsedFontName = parsedFontName["name"];
           }
           else {

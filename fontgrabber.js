@@ -94,7 +94,7 @@ function extractFontNamesFromLine(input) {
   var fallbackFontNames = [];
   for (let i = 0; i < individualFonts.length; i++) {
     const individualFont = individualFonts[i];
-    var fontName = individualFont.trim().replace(/['"]+/g, '');
+    var fontName = individualFont.trim().replace("!important", '').replace(/['"]+/g, '');
     if (isRealFont(fontName)) {
       if (i == 0) {
         primaryFontNames.push(fontName);
@@ -113,7 +113,7 @@ function extractSingleFontNameFromLine(input) {
   if (!input) {
     return null;
   }
-  var fontName = input.trim().replace(/['"]+/g, '');
+  var fontName = input.trim().replace("!important", '').replace(/['"]+/g, '');
   return fontName;
 }
 
@@ -572,6 +572,8 @@ const app = express();
 
 const hostname = '127.0.0.1';
 const port = 8080;
+
+app.get('/', (req, res) => res.send("FontGrabber API is running"));
 
 app.get('/fonts', async function(req, res) {
   if (!browser) {

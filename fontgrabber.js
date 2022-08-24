@@ -73,7 +73,7 @@ function doRegexAll(input, regex) {
 }*/
 
 function isRealFont(fontName) {
-  var notRealFonts = ["sans-serif", "serif", "cursive", "monospace", "initial", "inherit", "-apple-system", "BlinkMacSystemFont", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "system-ui"];
+  var notRealFonts = ["sans-serif", "serif", "cursive", "fantasy", "monospace", "initial", "inherit", "-apple-system", "BlinkMacSystemFont", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "system-ui"];
   var notRealFontSearches = [/font\s?awesome/i];
   for (const fontSearch of notRealFontSearches) {
     if (fontSearch.test(fontName)) {
@@ -87,11 +87,11 @@ function extractFontNamesFromLine(input) {
   //input: 'SF Pro', "Helvetica", Arial, sans-serif
   //output: ["SF Pro", "Helvetica", "Arial"]
   if (!input) {
-    return {"primary": [], "backup": []};
+    return {"primary": [], "fallback": []};
   }
   var individualFonts = input.split(",");
   var primaryFontNames = [];
-  var backupFontNames = [];
+  var fallbackFontNames = [];
   for (let i = 0; i < individualFonts.length; i++) {
     const individualFont = individualFonts[i];
     var fontName = individualFont.trim().replace(/['"]+/g, '');
@@ -100,11 +100,11 @@ function extractFontNamesFromLine(input) {
         primaryFontNames.push(fontName);
       }
       else {
-        backupFontNames.push(fontName);
+        fallbackFontNames.push(fontName);
       }
     }
   }
-  return {"primary": primaryFontNames, "backup": backupFontNames};
+  return {"primary": primaryFontNames, "fallback": fallbackFontNames};
 }
 
 function extractSingleFontNameFromLine(input) {
@@ -445,7 +445,7 @@ async function grabFonts(urlToFetch) {
     //console.log(externalCSSPages, internalCSSContent, inlineCSSContent);
 
     var primaryFonts = [];
-    var backupFonts = [];
+    var fallbackFonts = [];
 
     if (logProgress) {
       console.log("Finding fontFaceInstances");
@@ -473,7 +473,6 @@ async function grabFonts(urlToFetch) {
       }
 
       var fontFaceWeightValue;
-      console.log(typeof fontFaceWeight);
       if (fontFaceWeight) {
         fontFaceWeight = fontFaceWeight.trim();
         if (fontFaceWeight.toLowerCase() == "regular") {
@@ -521,7 +520,7 @@ async function grabFonts(urlToFetch) {
         }
         else {
           if (!primaryFonts.some(e => e["name"] == fontFaceName)) {
-            backupFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName, "src": fontFaceURL, "weight": fontFaceWeightValue}]});
+            fallbackFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName, "src": fontFaceURL, "weight": fontFaceWeightValue}]});
           }
         }
       }
@@ -538,13 +537,13 @@ async function grabFonts(urlToFetch) {
       for (let j = 0; j < fontFaceNames["primary"].length; j++) {
         var fontFaceName = fontFaceNames["primary"][j];
         if (!primaryFonts.some(e => e["name"] == fontFaceName)) {
-            backupFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName}]});
+            fallbackFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName}]});
         }
       }
-      for (let j = 0; j < fontFaceNames["backup"].length; j++) {
-        var fontFaceName = fontFaceNames["backup"][j];
-        if (!primaryFonts.some(e => e["name"] == fontFaceName) && !backupFonts.some(e => e["name"] == fontFaceName)) {
-            backupFonts.push({"name": fontFaceName,  "variants": [{"full_name": fontFaceName}]});
+      for (let j = 0; j < fontFaceNames["fallback"].length; j++) {
+        var fontFaceName = fontFaceNames["fallback"][j];
+        if (!primaryFonts.some(e => e["name"] == fontFaceName) && !fallbackFonts.some(e => e["name"] == fontFaceName)) {
+            fallbackFonts.push({"name": fontFaceName,  "variants": [{"full_name": fontFaceName}]});
         }
       }
     }
@@ -554,8 +553,8 @@ async function grabFonts(urlToFetch) {
 
     await page.close();
 
-    console.log("Success:", urlToFetch, "->", primaryFonts.length+backupFonts.length, "font" + ((primaryFonts.length+backupFonts.length == 1) ? "" : "s"), "found")
-    return {"stylesheets": {"external": externalCSSPages.length, "internal": internalCSSContent.length, "inline": inlineCSSContent.length}, "fonts": {"primary": primaryFonts, "backup": backupFonts}};
+    console.log("Success:", urlToFetch, "->", primaryFonts.length+fallbackFonts.length, "font" + ((primaryFonts.length+fallbackFonts.length == 1) ? "" : "s"), "found")
+    return {"stylesheets": {"external": externalCSSPages.length, "internal": internalCSSContent.length, "inline": inlineCSSContent.length}, "fonts": {"primary": primaryFonts, "fallback": fallbackFonts}};
   }
   catch(e) {
     console.log("Error (entire async):", e.message)

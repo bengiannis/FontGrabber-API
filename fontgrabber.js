@@ -519,8 +519,8 @@ async function grabFonts(urlToFetch) {
           }
         }
         else {
-          if (!primaryFonts.some(e => e["name"] == fontFaceName)) {
-            fallbackFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName, "src": fontFaceURL, "weight": fontFaceWeightValue}]});
+          if (!primaryFonts.some(e => e["name"] == fontFaceName) &&!fallbackFonts.some(e => e["name"] == fontFaceName)) {
+            fallbackFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName}]});
           }
         }
       }
@@ -536,7 +536,7 @@ async function grabFonts(urlToFetch) {
       var fontFaceNames = extractFontNamesFromLine(fontFamilyLine);
       for (let j = 0; j < fontFaceNames["primary"].length; j++) {
         var fontFaceName = fontFaceNames["primary"][j];
-        if (!primaryFonts.some(e => e["name"] == fontFaceName)) {
+        if (!primaryFonts.some(e => e["name"] == fontFaceName) && !fallbackFonts.some(e => e["name"] == fontFaceName)) {
             fallbackFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName}]});
         }
       }

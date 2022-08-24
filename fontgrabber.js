@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const request = require('request');
 const express = require('express');
 const FontName = require('fontname');
+const woffParser = require('woff-parser');
 const http = require('http');
 const https = require('https');
 const { match } = require('assert');
@@ -204,11 +205,33 @@ async function parseFontNameFromUrl(fontUrl) {
     const fontInfo = FontName.parse(fontFileBuffer)[0];
 
     if (fontInfo) {
+      //console.log(fontInfo);
       var parsedFontName = fontInfo["fullName"];
       return {"name": parsedFontName};
     }
+    else {
+      throw new Exception("Could not parse font name");
+    }
   } catch (e) {
-    return {"error": e};
+    try {
+      const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
+      const fontInfo = await woffParser(fontFileBuffer);
+
+      if (fontInfo) {
+        var parsedFontName = fontInfo["name"]["nameRecords"]["English"]["fullName"];
+        return {"name": parsedFontName};
+      }
+      else {
+        throw new Exception("Could not parse font name");
+      }
+    } catch (e) {
+      if (e && e.message) {
+        return {"error": e.message};
+      }
+      else {
+        return {"error": "Could not parse font name"};
+      }
+    }
   }
 }
 
@@ -500,6 +523,7 @@ async function grabFonts(urlToFetch) {
             parsedFontName = parsedFontName["name"];
           }
           else {
+            console.log("Error parsing font name:", parsedFontName["error"]);
             parsedFontName = fontFaceName;
           }
 

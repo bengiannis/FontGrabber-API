@@ -74,7 +74,7 @@ function doRegexAll(input, regex) {
 
 function isRealFont(fontName) {
   var notRealFonts = ["sans-serif", "serif", "cursive", "fantasy", "monospace", "initial", "inherit", "-apple-system", "BlinkMacSystemFont", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "system-ui"];
-  var notRealFontSearches = [/font\s?awesome/i];
+  var notRealFontSearches = [/font\s?awesome/i, /var\s?\(/i];
   for (const fontSearch of notRealFontSearches) {
     if (fontSearch.test(fontName)) {
       return false;

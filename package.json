@@ -24,6 +24,7 @@
     "https": "^1.0.0",
     "puppeteer": "^16.1.1",
     "request": "^2.88.2",
-    "woff-parser": "^2.0.0"
+    "woff-parser": "^2.0.0",
+    "woff2-parser": "^1.0.0"
   }
 }

@@ -509,7 +509,7 @@ async function grabFonts(urlToFetch) {
           if (primaryFonts.some(e => (e["name"] == fontFaceName))) {
             //font already in list
             //[{name=fontname, variants=[ {weight=400, src = skjdnfkjnsdfn} ] }]
-            if (!(primaryFonts.some(font => (font["variants"].some(variant  => (variant["src"] == fontFaceName)))))) {
+            if (!(primaryFonts.some(font => (font["variants"].some(variant  => (variant["src"] == fontFaceURL)))))) {
               const existingFontDict = primaryFonts.find(font => font["name"] == fontFaceName);
               existingFontDict["variants"].push({"full_name": parsedFontName, "src": fontFaceURL, "weight": fontFaceWeightValue});
             }

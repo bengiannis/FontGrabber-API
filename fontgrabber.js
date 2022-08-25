@@ -229,8 +229,7 @@ async function parseFontNameFromUrl(fontUrl) {
     const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
     const fontInfo = FontName.parse(fontFileBuffer)[0];
 
-    if (fontInfo) {
-      //console.log(fontInfo);
+    if (fontInfo && fontInfo["fullName"]) {
       var parsedFontName = fontInfo["fullName"];
       return {"name": parsedFontName};
     }
@@ -242,7 +241,12 @@ async function parseFontNameFromUrl(fontUrl) {
       const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
       const fontInfo = await woff2Parser(fontFileBuffer);
 
-      if (fontInfo) {
+      console.log("TWO");
+      console.log(fontInfo);
+      console.log(fontInfo["name"]["nameRecords"]["English"]);
+      console.log("DONE TWO");
+
+      if (fontInfo && fontInfo["name"]["nameRecords"]["English"]["fullName"]) {
         var parsedFontName = fontInfo["name"]["nameRecords"]["English"]["fullName"];
         return {"name": parsedFontName};
       }
@@ -253,8 +257,8 @@ async function parseFontNameFromUrl(fontUrl) {
       try {
         const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
         const fontInfo = await woffParser(fontFileBuffer);
-  
-        if (fontInfo) {
+
+        if (fontInfo && fontInfo["name"]["nameRecords"]["English"]["fullName"]) {
           var parsedFontName = fontInfo["name"]["nameRecords"]["English"]["fullName"];
           return {"name": parsedFontName};
         }
@@ -557,6 +561,7 @@ async function grabFonts(urlToFetch) {
           fontFaceURL = directUrlGivenRelativeUrl(fontFaceURL, fontFaceCssSource);
 
           var parsedFontName = await parseFontNameFromUrl(fontFaceURL);
+          console.log(parsedFontName);
           if (parsedFontName && !("error" in parsedFontName) && (parsedFontName["name"].toLowerCase() != "undefined")) {
             parsedFontName = parsedFontName["name"];
           }

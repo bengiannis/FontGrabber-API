@@ -42,6 +42,30 @@ function asyncRequestManual(url) {
   });
 }
 
+function fileType(url) {
+  return new Promise(function (resolve, reject) {
+    request.head({uri: url, headers: {"User-Agent": "Mozilla/5.0"}}, function (error, response, body) {
+      try {
+        if (!error && response.statusCode == 200) {
+          const responseHeaders = response.headers;
+          if (responseHeaders && responseHeaders["content-type"]) {
+            const contentType = responseHeaders["content-type"];
+            resolve(`.${contentType.replace(/.+\/|;.+/g, "")}`.replace(".", "").toLowerCase());
+          }
+          else {
+            reject(new Error("No Content-Type returned when checking file type of " + url));
+          }
+        } else {
+          reject(error || new Error("Response " + response.statusCode + " when checking file type of " + url));
+        }
+      }
+      catch(e) {
+        reject(e || new Error("Response " + response.statusCode + " when checking file type of " + url))
+      }
+    });
+  });
+}
+
 function doRegex(input, regex) {
   var result = input.match(regex);
   if (result.length >= 2) {
@@ -76,7 +100,7 @@ function doRegexAll(input, regex) {
 
 function isRealFont(fontName) {
   var notRealFonts = ["sans-serif", "serif", "cursive", "fantasy", "monospace", "initial", "inherit", "-apple-system", "BlinkMacSystemFont", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "system-ui"];
-  var notRealFontSearches = [/font\s?awesome/i, /var\s?\(/i];
+  var notRealFontSearches = [/font\s?awesome/i, /webflow(\s?|-?)icons/i, /var\s?\(/i];
   for (const fontSearch of notRealFontSearches) {
     if (fontSearch.test(fontName)) {
       return false;

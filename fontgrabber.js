@@ -241,11 +241,6 @@ async function parseFontNameFromUrl(fontUrl) {
       const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
       const fontInfo = await woff2Parser(fontFileBuffer);
 
-      console.log("TWO");
-      console.log(fontInfo);
-      console.log(fontInfo["name"]["nameRecords"]["English"]);
-      console.log("DONE TWO");
-
       if (fontInfo && fontInfo["name"]["nameRecords"]["English"]["fullName"]) {
         var parsedFontName = fontInfo["name"]["nameRecords"]["English"]["fullName"];
         return {"name": parsedFontName};

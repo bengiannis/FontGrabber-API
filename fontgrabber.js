@@ -625,7 +625,7 @@ async function grabFonts(urlToFetch) {
       var fontFaceWeightValue;
       if (fontFaceWeight) {
         fontFaceWeight = fontFaceWeight.trim();
-        if (fontFaceWeight.toLowerCase() == "regular") {
+        if ((fontFaceWeight.toLowerCase() == "regular") || (fontFaceWeight.toLowerCase() == "normal")) {
           fontFaceWeightValue = "400";
         }
         else if (fontFaceWeight.toLowerCase() == "bold") {
@@ -646,12 +646,13 @@ async function grabFonts(urlToFetch) {
           fontFaceURL = directUrlGivenRelativeUrl(fontFaceURL, fontFaceCssSource);
 
           var parsedFontName = await parseFontNameFromUrl(fontFaceURL);
-          if (parsedFontName && !("error" in parsedFontName) && (parsedFontName["name"].toLowerCase() != "undefined")) {
+          console.log(fontFaceName, "turned into", parsedFontName);
+          if (parsedFontName && !("error" in parsedFontName) && (parsedFontName["name"].toLowerCase() != "undefined") && (![".\x7F"].includes(parsedFontName["name"]))) {
             parsedFontName = parsedFontName["name"];
           }
           else {
             console.log("Error parsing font name:", parsedFontName["error"]);
-            parsedFontName = fontFaceName;
+            parsedFontName = fontFaceName + " (" + fontFaceWeightValue + ")";
           }
 
           var parsedFontFileType = await fileTypeOfUrl(fontFaceURL);

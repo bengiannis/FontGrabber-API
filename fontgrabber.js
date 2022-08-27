@@ -42,7 +42,7 @@ function asyncRequestManual(url) {
   });
 }
 
-function fileType(url) {
+function fileTypeOfUrl(url) {
   return new Promise(function (resolve, reject) {
     request.head({uri: url, headers: {"User-Agent": "Mozilla/5.0"}}, function (error, response, body) {
       try {
@@ -50,7 +50,13 @@ function fileType(url) {
           const responseHeaders = response.headers;
           if (responseHeaders && responseHeaders["content-type"]) {
             const contentType = responseHeaders["content-type"];
-            resolve(`.${contentType.replace(/.+\/|;.+/g, "")}`.replace(".", "").toLowerCase());
+            const parsedFileType = `.${contentType.replace(/.+\/|;.+/g, "")}`.replace(".", "").toLowerCase();
+            if (isValidFontFileType(parsedFileType)) {
+              resolve(parsedFileType);
+            }
+            else {
+              reject(new Error("Invalid font file type (" + parsedFileType + ") returned when checking " + url));
+            }
           }
           else {
             reject(new Error("No Content-Type returned when checking file type of " + url));
@@ -64,6 +70,10 @@ function fileType(url) {
       }
     });
   });
+}
+
+function isValidFontFileType(fileType) {
+  return ["otf", "ttf", "woff", "woff2"].includes(fileType);
 }
 
 function doRegex(input, regex) {
@@ -100,7 +110,7 @@ function doRegexAll(input, regex) {
 
 function isRealFont(fontName) {
   var notRealFonts = ["sans-serif", "serif", "cursive", "fantasy", "monospace", "initial", "inherit", "-apple-system", "BlinkMacSystemFont", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "system-ui"];
-  var notRealFontSearches = [/font\s?awesome/i, /webflow(\s?|-?)icons/i, /var\s?\(/i];
+  var notRealFontSearches = [/font\s?awesome/i, /webflow(\s?|-?)icons/i, /var\s?\(/i, /google\s?sans/i, /apple\s?icons/i];
   for (const fontSearch of notRealFontSearches) {
     if (fontSearch.test(fontName)) {
       return false;
@@ -225,6 +235,59 @@ async function getFontFileBufferFromUrl(fontUrl) {
 }
 
 async function parseFontNameFromUrl(fontUrl) {
+  try {
+    const fileType = await fileTypeOfUrl(fontUrl);
+    if ((fileType == "otf") || (fileType == "ttf")) {
+      const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
+      const fontInfo = FontName.parse(fontFileBuffer)[0];
+
+      if (fontInfo && fontInfo["fullName"]) {
+        var parsedFontName = fontInfo["fullName"];
+        return {"name": parsedFontName};
+      }
+      else {
+        throw new Exception("Could not parse font name");
+      }
+    }
+    else if (fileType == "woff2") {
+      const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
+      const fontInfo = await woff2Parser(fontFileBuffer);
+
+      if (fontInfo && fontInfo["name"]["nameRecords"]["English"]["fullName"]) {
+        var parsedFontName = fontInfo["name"]["nameRecords"]["English"]["fullName"];
+        return {"name": parsedFontName};
+      }
+      else {
+        throw new Exception("Could not parse font name");
+      }
+    }
+    else if (fileType == "woff") {
+      const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
+      const fontInfo = await woffParser(fontFileBuffer);
+
+      if (fontInfo && fontInfo["name"]["nameRecords"]["English"]["fullName"]) {
+        var parsedFontName = fontInfo["name"]["nameRecords"]["English"]["fullName"];
+        return {"name": parsedFontName};
+      }
+      else {
+        throw new Exception("Could not parse font name");
+      }
+    }
+    else {
+      return await parseFontNameFromUnknownUrl(fontUrl);
+    }
+  }
+  catch (e) {
+    if (e && e.message) {
+      return {"error": e.message};
+    }
+    else {
+      return {"error": "Could not parse font name"};
+    }
+  }
+}
+
+async function parseFontNameFromUnknownUrl(fontUrl) {
   try {
     const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
     const fontInfo = FontName.parse(fontFileBuffer)[0];
@@ -565,6 +628,12 @@ async function grabFonts(urlToFetch) {
             parsedFontName = fontFaceName;
           }
 
+          var parsedFontFileType = await fileTypeOfUrl(fontFaceURL);
+          if (!isValidFontFileType(parsedFontFileType)) {
+            console.log("Error parsing font file type:", parsedFontFileType);
+            parsedFontFileType = "undefined";
+          }
+
           /*if (!primaryFonts.some(e => (e["name"] == fontFaceName && e["src"] == fontFaceURL))) {
             primaryFonts.push({"name": fontFaceName, "full_name": parsedFontName, "src": fontFaceURL, "weight": fontFaceWeightValue});
           }*/
@@ -573,11 +642,11 @@ async function grabFonts(urlToFetch) {
             //[{name=fontname, variants=[ {weight=400, src = skjdnfkjnsdfn} ] }]
             if (!(primaryFonts.some(font => (font["variants"].some(variant  => (variant["src"] == fontFaceURL)))))) {
               const existingFontDict = primaryFonts.find(font => font["name"] == fontFaceName);
-              existingFontDict["variants"].push({"full_name": parsedFontName, "src": fontFaceURL, "weight": fontFaceWeightValue});
+              existingFontDict["variants"].push({"full_name": parsedFontName, "src": fontFaceURL, "weight": fontFaceWeightValue, "type": parsedFontFileType});
             }
           }
           else {
-            primaryFonts.push({"name": fontFaceName, "variants": [{"full_name": parsedFontName, "src": fontFaceURL, "weight": fontFaceWeightValue}]});
+            primaryFonts.push({"name": fontFaceName, "variants": [{"full_name": parsedFontName, "src": fontFaceURL, "weight": fontFaceWeightValue, "type": parsedFontFileType}]});
           }
         }
         else {

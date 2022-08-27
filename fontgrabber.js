@@ -44,32 +44,54 @@ function asyncRequestManual(url) {
 
 function fileTypeOfUrl(url) {
   return new Promise(function (resolve, reject) {
-    request.head({uri: url, headers: {"User-Agent": "Mozilla/5.0"}}, function (error, response, body) {
-      try {
-        if (!error && response.statusCode == 200) {
-          const responseHeaders = response.headers;
-          if (responseHeaders && responseHeaders["content-type"]) {
-            const contentType = responseHeaders["content-type"];
-            const parsedFileType = `.${contentType.replace(/.+\/|;.+/g, "")}`.replace(".", "").toLowerCase();
-            if (isValidFontFileType(parsedFileType)) {
-              resolve(parsedFileType);
+    if (/.otf(\??|\/)/.test(url)) {
+      resolve("otf");
+    }
+    else if (/.ttf(\??|\/)/.test(url)) {
+      resolve("ttf");
+    }
+    else if (/.woff2(\??|\/)/.test(url)) {
+      resolve("woff2");
+    }
+    else if (/.woff(\??|\/)/.test(url)) {
+      resolve("woff");
+    }
+    else {
+      request.head({uri: url, headers: {"User-Agent": "Mozilla/5.0"}}, function (error, response, body) {
+        try {
+          if (!error && response.statusCode == 200) {
+            const responseHeaders = response.headers;
+            if (responseHeaders && responseHeaders["content-type"]) {
+              const contentType = responseHeaders["content-type"];
+              const parsedFileType = `.${contentType.replace(/.+\/|;.+/g, "")}`.replace(".", "").toLowerCase();
+              console.log(contentType, parsedFileType);
+              if (isValidFontFileType(parsedFileType)) {
+                resolve(parsedFileType);
+              }
+              else {
+                reject(new Error("Invalid font file type (" + parsedFileType + ") returned when checking " + url));
+              }
             }
             else {
-              reject(new Error("Invalid font file type (" + parsedFileType + ") returned when checking " + url));
+              reject(new Error("No Content-Type returned when checking file type of " + url));
             }
+          } else {
+            reject(error || new Error("Response " + response.statusCode + " when checking file type of " + url));
           }
-          else {
-            reject(new Error("No Content-Type returned when checking file type of " + url));
-          }
-        } else {
-          reject(error || new Error("Response " + response.statusCode + " when checking file type of " + url));
         }
-      }
-      catch(e) {
-        reject(e || new Error("Response " + response.statusCode + " when checking file type of " + url))
-      }
-    });
+        catch(e) {
+          reject(e || new Error("Response " + response.statusCode + " when checking file type of " + url))
+        }
+      });
+    }
   });
+}
+
+function correctMismatchedFileType(fileType) {
+  if (["font-woff"].includes(fileType)) {
+    return "woff";
+  }
+  return fileType;
 }
 
 function isValidFontFileType(fileType) {
@@ -277,12 +299,17 @@ async function parseFontNameFromUrl(fontUrl) {
       return await parseFontNameFromUnknownUrl(fontUrl);
     }
   }
-  catch (e) {
-    if (e && e.message) {
-      return {"error": e.message};
+  catch(e) {
+    try {
+      return await parseFontNameFromUnknownUrl(fontUrl);
     }
-    else {
-      return {"error": "Could not parse font name"};
+    catch(e) {
+      if (e && e.message) {
+        return {"error": e.message};
+      }
+      else {
+        return {"error": "Could not parse font name"};
+      }
     }
   }
 }
@@ -619,7 +646,6 @@ async function grabFonts(urlToFetch) {
           fontFaceURL = directUrlGivenRelativeUrl(fontFaceURL, fontFaceCssSource);
 
           var parsedFontName = await parseFontNameFromUrl(fontFaceURL);
-          console.log(parsedFontName);
           if (parsedFontName && !("error" in parsedFontName) && (parsedFontName["name"].toLowerCase() != "undefined")) {
             parsedFontName = parsedFontName["name"];
           }
@@ -631,7 +657,8 @@ async function grabFonts(urlToFetch) {
           var parsedFontFileType = await fileTypeOfUrl(fontFaceURL);
           if (!isValidFontFileType(parsedFontFileType)) {
             console.log("Error parsing font file type:", parsedFontFileType);
-            parsedFontFileType = "undefined";
+            //parsedFontFileType = "undefined";
+            continue;
           }
 
           /*if (!primaryFonts.some(e => (e["name"] == fontFaceName && e["src"] == fontFaceURL))) {

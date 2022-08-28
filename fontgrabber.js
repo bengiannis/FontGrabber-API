@@ -45,42 +45,51 @@ function asyncRequestManual(url) {
 function fileTypeOfUrl(url) {
   return new Promise(function (resolve, reject) {
     if (/.otf(\??|\/)/.test(url)) {
-      resolve("otf");
+      resolve({"type": "otf"});
     }
     else if (/.ttf(\??|\/)/.test(url)) {
-      resolve("ttf");
+      resolve({"type": "ttf"});
     }
     else if (/.woff2(\??|\/)/.test(url)) {
-      resolve("woff2");
+      resolve({"type": "woff2"});
     }
     else if (/.woff(\??|\/)/.test(url)) {
-      resolve("woff");
+      resolve({"type": "woff"});
     }
     else {
+      console.log("YPYPY");
       request.head({uri: url, headers: {"User-Agent": "Mozilla/5.0"}}, function (error, response, body) {
         try {
           if (!error && response.statusCode == 200) {
             const responseHeaders = response.headers;
             if (responseHeaders && responseHeaders["content-type"]) {
               const contentType = responseHeaders["content-type"];
-              const parsedFileType = `.${contentType.replace(/.+\/|;.+/g, "")}`.replace(".", "").toLowerCase();
+              var parsedFileType = `.${contentType.replace(/.+\/|;.+/g, "")}`.replace(".", "").toLowerCase();
+              console.log(contentType, parsedFileType);
+              parsedFileType = correctMismatchedFileType(parsedFileType);
               console.log(contentType, parsedFileType);
               if (isValidFontFileType(parsedFileType)) {
-                resolve(parsedFileType);
+                resolve({"type": parsedFileType});
               }
               else {
-                reject(new Error("Invalid font file type (" + parsedFileType + ") returned when checking " + url));
+                reject({"error": "Invalid font file type (" + parsedFileType + ") returned when checking " + url});
               }
             }
             else {
-              reject(new Error("No Content-Type returned when checking file type of " + url));
+              reject({"error": "No Content-Type returned when checking file type of " + url});
             }
-          } else {
-            reject(error || new Error("Response " + response.statusCode + " when checking file type of " + url));
+          }
+          else {
+            reject({"error": "Response " + response.statusCode + " when checking file type of " + url});
           }
         }
         catch(e) {
-          reject(e || new Error("Response " + response.statusCode + " when checking file type of " + url))
+          if (e && e.message) {
+            reject({"error": error.message});
+          }
+          else {
+            reject({"error": "Response " + response.statusCode + " when checking file type of " + url});
+          }
         }
       });
     }
@@ -88,8 +97,13 @@ function fileTypeOfUrl(url) {
 }
 
 function correctMismatchedFileType(fileType) {
-  if (["font-woff"].includes(fileType)) {
-    return "woff";
+  if (fileType) {
+    if (["font-woff2"].includes(fileType)) {
+      return "woff2";
+    }
+    else if (["font-woff"].includes(fileType)) {
+      return "woff";
+    }
   }
   return fileType;
 }
@@ -258,41 +272,47 @@ async function getFontFileBufferFromUrl(fontUrl) {
 
 async function parseFontNameFromUrl(fontUrl) {
   try {
-    const fileType = await fileTypeOfUrl(fontUrl);
-    if ((fileType == "otf") || (fileType == "ttf")) {
-      const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
-      const fontInfo = FontName.parse(fontFileBuffer)[0];
-
-      if (fontInfo && fontInfo["fullName"]) {
-        var parsedFontName = fontInfo["fullName"];
-        return {"name": parsedFontName};
-      }
-      else {
-        throw new Exception("Could not parse font name");
-      }
+    var fileType = await fileTypeOfUrl(fontUrl);
+    if (!fileType || fileType["error"] || !fileType["type"]) {
+      return {"error": fileType["error"]};
     }
-    else if (fileType == "woff2") {
-      const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
-      const fontInfo = await woff2Parser(fontFileBuffer);
+    else if (isValidFontFileType(fileType["type"])) {
+      fileType = fileType["type"];
+      if ((fileType == "otf") || (fileType == "ttf")) {
+        const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
+        const fontInfo = FontName.parse(fontFileBuffer)[0];
 
-      if (fontInfo && fontInfo["name"]["nameRecords"]["English"]["fullName"]) {
-        var parsedFontName = fontInfo["name"]["nameRecords"]["English"]["fullName"];
-        return {"name": parsedFontName};
+        if (fontInfo && fontInfo["fullName"]) {
+          var parsedFontName = fontInfo["fullName"];
+          return {"name": parsedFontName};
+        }
+        else {
+          throw new Exception("Could not parse font name using FontName");
+        }
       }
-      else {
-        throw new Exception("Could not parse font name");
-      }
-    }
-    else if (fileType == "woff") {
-      const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
-      const fontInfo = await woffParser(fontFileBuffer);
+      else if (fileType == "woff2") {
+        const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
+        const fontInfo = await woff2Parser(fontFileBuffer);
 
-      if (fontInfo && fontInfo["name"]["nameRecords"]["English"]["fullName"]) {
-        var parsedFontName = fontInfo["name"]["nameRecords"]["English"]["fullName"];
-        return {"name": parsedFontName};
+        if (fontInfo && fontInfo["name"]["nameRecords"]["English"]["fullName"]) {
+          var parsedFontName = fontInfo["name"]["nameRecords"]["English"]["fullName"];
+          return {"name": parsedFontName};
+        }
+        else {
+          throw new Exception("Could not parse font name using woff2-parser");
+        }
       }
-      else {
-        throw new Exception("Could not parse font name");
+      else if (fileType == "woff") {
+        const fontFileBuffer = await getFontFileBufferFromUrl(fontUrl);
+        const fontInfo = await woffParser(fontFileBuffer);
+
+        if (fontInfo && fontInfo["name"]["nameRecords"]["English"]["fullName"]) {
+          var parsedFontName = fontInfo["name"]["nameRecords"]["English"]["fullName"];
+          return {"name": parsedFontName};
+        }
+        else {
+          throw new Exception("Could not parse font name using woff-parser");
+        }
       }
     }
     else {
@@ -308,7 +328,7 @@ async function parseFontNameFromUrl(fontUrl) {
         return {"error": e.message};
       }
       else {
-        return {"error": "Could not parse font name"};
+        return {"error": "Could not parse font name from url"};
       }
     }
   }
@@ -324,7 +344,7 @@ async function parseFontNameFromUnknownUrl(fontUrl) {
       return {"name": parsedFontName};
     }
     else {
-      throw new Exception("Could not parse font name");
+      throw new Exception("Could not parse font name using FontName from unknown url");
     }
   } catch (e) {
     try {
@@ -336,7 +356,7 @@ async function parseFontNameFromUnknownUrl(fontUrl) {
         return {"name": parsedFontName};
       }
       else {
-        throw new Exception("Could not parse font name");
+        throw new Exception("Could not parse font name using woff2-parser from unknown url");
       }
     } catch (e) {
       try {
@@ -348,14 +368,14 @@ async function parseFontNameFromUnknownUrl(fontUrl) {
           return {"name": parsedFontName};
         }
         else {
-          throw new Exception("Could not parse font name");
+          throw new Exception("Could not parse font name using woff-parser from unknown url");
         }
       } catch (e) {
         if (e && e.message) {
           return {"error": e.message};
         }
         else {
-          return {"error": "Could not parse font name"};
+          return {"error": "Could not parse font name from unknown url"};
         }
       }
     }
@@ -646,7 +666,6 @@ async function grabFonts(urlToFetch) {
           fontFaceURL = directUrlGivenRelativeUrl(fontFaceURL, fontFaceCssSource);
 
           var parsedFontName = await parseFontNameFromUrl(fontFaceURL);
-          console.log(fontFaceName, "turned into", parsedFontName);
           if (parsedFontName && !("error" in parsedFontName) && (parsedFontName["name"].toLowerCase() != "undefined") && (![".\x7F"].includes(parsedFontName["name"]))) {
             parsedFontName = parsedFontName["name"];
           }
@@ -655,11 +674,16 @@ async function grabFonts(urlToFetch) {
             parsedFontName = fontFaceName + " (" + fontFaceWeightValue + ")";
           }
 
-          var parsedFontFileType = await fileTypeOfUrl(fontFaceURL);
-          if (!isValidFontFileType(parsedFontFileType)) {
-            console.log("Error parsing font file type:", parsedFontFileType);
-            //parsedFontFileType = "undefined";
-            continue;
+          var parsedFontFileType = "undefined"; 
+          try {
+            parsedFontFileType = await fileTypeOfUrl(fontFaceURL);
+            if (parsedFontFileType && parsedFontFileType["type"]) {
+              parsedFontFileType = parsedFontFileType["type"];
+            }
+          }
+          catch(e) {
+            console.log("Error parsing font file type:", parsedFontFileType["type"]);
+            //continue;
           }
 
           /*if (!primaryFonts.some(e => (e["name"] == fontFaceName && e["src"] == fontFaceURL))) {
@@ -717,7 +741,7 @@ async function grabFonts(urlToFetch) {
   }
   catch(e) {
     console.log("Error (entire async):", e.message)
-    if (e.message.includes("ERR_NAME_NOT_RESOLVED")) {
+    if (e && e.message && e.message.includes("ERR_NAME_NOT_RESOLVED")) {
       return {"error": "Error loading webpage", "errorMessage": e.message};
     }
     else {

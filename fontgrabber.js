@@ -412,7 +412,7 @@ function timeout(ms) {
 
 async function grabFonts(ticket, urlToFetch) {
   try {
-    setTicketProgress(ticket, "Loading website");
+    setTicketProgress(ticket, "Loading website...");
     if (logProgress) {
       console.log("Creating new page");
     }
@@ -456,7 +456,7 @@ async function grabFonts(ticket, urlToFetch) {
     });
     console.log("All Document Content:", allDocumentContent);*/
 
-    setTicketProgress(ticket, "Loading external stylesheets");
+    setTicketProgress(ticket, "Loading stylesheets...");
     if (logProgress) {
       console.log("Loading externalCSSPages");
     }
@@ -476,7 +476,6 @@ async function grabFonts(ticket, urlToFetch) {
         return {"error": "Error parsing external CSS content", "errorMessage": e.message};
       }
     });
-    setTicketProgress(ticket, "Loading internal stylesheets");
     if (logProgress) {
       console.log("Done loading externalCSSPages");
       console.log("Loading internalCSSContent");
@@ -497,7 +496,6 @@ async function grabFonts(ticket, urlToFetch) {
         return {"error": "Error parsing internal CSS content", "errorMessage": e.message};
       }
     });
-    setTicketProgress(ticket, "Loading inline stylesheets");
     if (logProgress) {
       console.log("Done loading internalCSSContent");
       console.log("Loading inlineCSSContent");
@@ -528,7 +526,7 @@ async function grabFonts(ticket, urlToFetch) {
     var fontFaceInstances = []
     var fontFamilyInstances = []
 
-    setTicketProgress(ticket, "Parsing external stylesheets");
+    setTicketProgress(ticket, "Parsing stylesheets...");
     if (logProgress) {
       console.log("Parsing externalCSSPages");
     }
@@ -560,7 +558,6 @@ async function grabFonts(ticket, urlToFetch) {
         console.log("Error fetching and/or parsing externalCSSPage:", e.message);
       }
     }
-    setTicketProgress(ticket, "Parsing internal stylesheets");
     if (logProgress) {
       console.log("Done parsing externalCSSPages");
       console.log("Parsing internalCSSContent");
@@ -586,7 +583,6 @@ async function grabFonts(ticket, urlToFetch) {
         console.log("Error parsing internalCSSContent:", e.message);
       }
     }
-    setTicketProgress(ticket, "Parsing imported stylesheets");
     if (logProgress) {
       console.log("Done parsing internalCSSContent");
       console.log("Parsing importedCSSPages");
@@ -620,7 +616,6 @@ async function grabFonts(ticket, urlToFetch) {
         console.log("Error fetching and/or parsing importedCSSPage:", e.message);
       }
     }
-    setTicketProgress(ticket, "Parsing inline stylesheets");
     if (logProgress) {
       console.log("Done parsing importedCSSPages");
       console.log("Parsing inlineCSSContent");
@@ -649,7 +644,7 @@ async function grabFonts(ticket, urlToFetch) {
     var primaryFonts = [];
     var fallbackFonts = [];
 
-    setTicketProgress(ticket, "Finding @font-face instances");
+    setTicketProgress(ticket, "Grabbing fonts...");
     if (logProgress) {
       console.log("Finding fontFaceInstances");
     }
@@ -741,7 +736,6 @@ async function grabFonts(ticket, urlToFetch) {
         }
       }
     }
-    setTicketProgress(ticket, "Finding font families");
     if (logProgress) {
       console.log("Done finding fontFaceInstances");
       console.log("Finding fontFamilyInstances");
@@ -764,7 +758,6 @@ async function grabFonts(ticket, urlToFetch) {
         }
       }
     }
-    setTicketProgress(ticket, "Done finding fonts");
     if (logProgress) {
       console.log("Done finding fontFamilyInstances");
     }

@@ -14,6 +14,33 @@ var logProgress = true;
 
 var browser;
 
+var tickets = {}
+
+function newTicket() {
+  var result = '';
+  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (var i = 0; i < 16; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+ }
+ tickets[result] = "Grabbing fonts";
+ return result;
+}
+
+function setTicketProgress(ticket, progress) {
+  if (ticket) {
+    tickets[ticket] = progress;
+  }
+  else {
+    ripTicket(ticket);
+  }
+}
+
+function ripTicket(ticket) {
+  if (tickets[ticket]) {
+    delete tickets.ticket;
+  }
+}
+
 function asyncRequest(url) {
   return new Promise(async function (resolve, reject) {
     const page = await browser.newPage();
@@ -57,7 +84,6 @@ function fileTypeOfUrl(url) {
       resolve({"type": "woff"});
     }
     else {
-      console.log("YPYPY");
       request.head({uri: url, headers: {"User-Agent": "Mozilla/5.0"}}, function (error, response, body) {
         try {
           if (!error && response.statusCode == 200) {
@@ -65,9 +91,7 @@ function fileTypeOfUrl(url) {
             if (responseHeaders && responseHeaders["content-type"]) {
               const contentType = responseHeaders["content-type"];
               var parsedFileType = `.${contentType.replace(/.+\/|;.+/g, "")}`.replace(".", "").toLowerCase();
-              console.log(contentType, parsedFileType);
               parsedFileType = correctMismatchedFileType(parsedFileType);
-              console.log(contentType, parsedFileType);
               if (isValidFontFileType(parsedFileType)) {
                 resolve({"type": parsedFileType});
               }
@@ -386,8 +410,9 @@ function timeout(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function grabFonts(urlToFetch) {
+async function grabFonts(ticket, urlToFetch) {
   try {
+    setTicketProgress(ticket, "Loading website");
     if (logProgress) {
       console.log("Creating new page");
     }
@@ -431,6 +456,7 @@ async function grabFonts(urlToFetch) {
     });
     console.log("All Document Content:", allDocumentContent);*/
 
+    setTicketProgress(ticket, "Loading external stylesheets");
     if (logProgress) {
       console.log("Loading externalCSSPages");
     }
@@ -450,6 +476,7 @@ async function grabFonts(urlToFetch) {
         return {"error": "Error parsing external CSS content", "errorMessage": e.message};
       }
     });
+    setTicketProgress(ticket, "Loading internal stylesheets");
     if (logProgress) {
       console.log("Done loading externalCSSPages");
       console.log("Loading internalCSSContent");
@@ -470,6 +497,7 @@ async function grabFonts(urlToFetch) {
         return {"error": "Error parsing internal CSS content", "errorMessage": e.message};
       }
     });
+    setTicketProgress(ticket, "Loading inline stylesheets");
     if (logProgress) {
       console.log("Done loading internalCSSContent");
       console.log("Loading inlineCSSContent");
@@ -500,6 +528,7 @@ async function grabFonts(urlToFetch) {
     var fontFaceInstances = []
     var fontFamilyInstances = []
 
+    setTicketProgress(ticket, "Parsing external stylesheets");
     if (logProgress) {
       console.log("Parsing externalCSSPages");
     }
@@ -531,6 +560,7 @@ async function grabFonts(urlToFetch) {
         console.log("Error fetching and/or parsing externalCSSPage:", e.message);
       }
     }
+    setTicketProgress(ticket, "Parsing internal stylesheets");
     if (logProgress) {
       console.log("Done parsing externalCSSPages");
       console.log("Parsing internalCSSContent");
@@ -556,6 +586,7 @@ async function grabFonts(urlToFetch) {
         console.log("Error parsing internalCSSContent:", e.message);
       }
     }
+    setTicketProgress(ticket, "Parsing imported stylesheets");
     if (logProgress) {
       console.log("Done parsing internalCSSContent");
       console.log("Parsing importedCSSPages");
@@ -589,6 +620,7 @@ async function grabFonts(urlToFetch) {
         console.log("Error fetching and/or parsing importedCSSPage:", e.message);
       }
     }
+    setTicketProgress(ticket, "Parsing inline stylesheets");
     if (logProgress) {
       console.log("Done parsing importedCSSPages");
       console.log("Parsing inlineCSSContent");
@@ -617,6 +649,7 @@ async function grabFonts(urlToFetch) {
     var primaryFonts = [];
     var fallbackFonts = [];
 
+    setTicketProgress(ticket, "Finding @font-face instances");
     if (logProgress) {
       console.log("Finding fontFaceInstances");
     }
@@ -708,6 +741,7 @@ async function grabFonts(urlToFetch) {
         }
       }
     }
+    setTicketProgress(ticket, "Finding font families");
     if (logProgress) {
       console.log("Done finding fontFaceInstances");
       console.log("Finding fontFamilyInstances");
@@ -730,6 +764,7 @@ async function grabFonts(urlToFetch) {
         }
       }
     }
+    setTicketProgress(ticket, "Done finding fonts");
     if (logProgress) {
       console.log("Done finding fontFamilyInstances");
     }
@@ -763,28 +798,19 @@ app.get('/fonts', async function(req, res) {
     if (logProgress) {
       console.log("Starting browser");
     }
-    if (debug || true) {
-      browser = await puppeteer.launch({
-        headless: true
-      });
-    }
-    else {
-      browser = await puppeteer.launch({
-        headless: true,
-        executablePath: "node_modules/puppeteer/.local-chromium/linux-1022525/chrome-linux/chrome"//,
-        //args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-    }
+    browser = await puppeteer.launch({
+      headless: true
+    });
   }
-
   var urlToFetch = req.query.url;
+  var ticket = req.query.ticket;
   if (urlToFetch && !urlToFetch.startsWith("http") && urlToFetch.includes(".")) {
     urlToFetch = "http://" + urlToFetch
   }
   if (urlToFetch && isValidHttpUrl(urlToFetch)) {
     try {
       console.log("Grabbing", urlToFetch);
-      var fonts = await grabFonts(urlToFetch);
+      var fonts = await grabFonts(ticket, urlToFetch);
       res.send(fonts);
     }
     catch(e) {
@@ -793,6 +819,41 @@ app.get('/fonts', async function(req, res) {
   }
   else {
     res.send({"error": "Error grabbing fonts", "errorMessage": "Invalid URL"});
+  }
+  if (ticket) {
+    ripTicket(ticket);
+  }
+});
+
+app.get('/tabs', async function(req, res) {
+  var openTabs = [];
+  if (browser) {
+    openTabs = await browser.pages();
+  }
+  res.send({"tabs": openTabs.length});
+});
+
+app.get('/ticket', async function(req, res) {
+  const ticket = newTicket();
+  res.send({"ticket": ticket});
+});
+
+app.get('/tickets', async function(req, res) {
+  res.send({"tickets": tickets.length});
+});
+
+app.get('/progress', async function(req, res) {
+  var ticket = req.query.ticket;
+  if (ticket) {
+    if (ticket in tickets) {
+      res.send({"progress": tickets[ticket]});
+    }
+    else {
+      res.send({"error": "Invalid ticket"});
+    }
+  }
+  else {
+    res.send({"error": "No ticket provided"});
   }
 });
 

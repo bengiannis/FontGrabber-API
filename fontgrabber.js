@@ -43,29 +43,53 @@ function ripTicket(ticket) {
 
 function asyncRequest(url) {
   return new Promise(async function (resolve, reject) {
-    const page = await browser.newPage();
-    await page.setCacheEnabled(false);
-    await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36");
-    page.on('response', async response => {
-      const pageContent = await response.text();
-      resolve(pageContent);
-    });
-    await page.goto(url, {
-      waitUntil: 'networkidle2'
-    });
-    await page.close();
+    try {
+      const page = await browser.newPage();
+      await page.setCacheEnabled(false);
+      await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36");
+      page.on('response', async response => {
+        const pageContent = await response.text();
+        resolve(pageContent);
+      });
+      await page.goto(url, {
+        waitUntil: 'networkidle2'
+      });
+      await page.close();
+    }
+    catch(e) {
+      if (e && e.message) {
+        console.log("Error performing asyncRequest on", url, ":", e.message);
+        reject({"error": "Error performing asyncRequest on " + url + " : " + e.message});
+      }
+      else {
+        console.log("Error performing asyncRequest on", url);
+        reject({"error": "Error performing asyncRequest on", url});
+      }
+    }
   });
 }
 
 function asyncRequestManual(url) {
   return new Promise(function (resolve, reject) {
-    request({uri: url, headers: {"User-Agent": "Mozilla/5.0"}}, function (error, response, body) {
-      if (!error && response.statusCode == 200) {
-        resolve(body);
-      } else {
-        reject(error || new Error("Response " + response.statusCode + " when fetching " + url));
+    try {
+      request({uri: url, headers: {"User-Agent": "Mozilla/5.0"}}, function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+          resolve(body);
+        } else {
+          reject(error || new Error("Response " + response.statusCode + " when fetching " + url));
+        }
+      });
+    }
+    catch(e) {
+      if (e && e.message) {
+        console.log("Error performing asyncRequestManual on", url, ":", e.message);
+        reject({"error": "Error performing asyncRequestManual on " + url + " : " + e.message});
       }
-    });
+      else {
+        console.log("Error performing asyncRequestManual on", url);
+        reject({"error": "Error performing asyncRequestManual on " + url});
+      }
+    }
   });
 }
 

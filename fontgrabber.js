@@ -731,6 +731,10 @@ async function grabFonts(ticket, urlToFetch) {
             parsedFontName = fontFaceName + " (" + fontFaceWeightValue + ")";
           }
 
+          if (!isRealFont(parsedFontName)) {
+            continue;
+          }
+
           var parsedFontFileType = "undefined"; 
           try {
             parsedFontFileType = await fileTypeOfUrl(fontFaceURL);

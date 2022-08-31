@@ -6,7 +6,6 @@ const woff2Parser = require('woff2-parser');
 const woffParser = require('woff-parser');
 const http = require('http');
 const https = require('https');
-const cors = require('cors')
 const { match } = require('assert');
 const { url } = require('inspector');
 
@@ -856,7 +855,7 @@ async function grabFonts(ticket, urlToFetch) {
 
 
 const app = express();
-app.use(cors());
+//app.use(cors());
 
 const hostname = '127.0.0.1';
 const port = 8080;

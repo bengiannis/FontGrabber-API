@@ -193,14 +193,17 @@ function doRegexAll(input, regex) {
 }*/
 
 function isRealFont(fontName) {
-  var notRealFonts = ["sans-serif", "serif", "cursive", "fantasy", "monospace", "initial", "inherit", "-apple-system", "BlinkMacSystemFont", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "system-ui"];
-  var notRealFontSearches = [/font\s?awesome/i, /webflow(\s?|-?)icons/i, /var\s?\(/i, /google\s?sans/i, /apple\s?icons/i];
+  if (!fontName) {
+    return false;
+  }
+  var notRealFonts = ["sans-serif", "serif", "cursive", "fantasy", "monospace", "initial", "inherit", "-apple-system", "blinkmacsystemfont", "system-ui"];
+  var notRealFontSearches = [/font(\s?|-?)awesome/i, /webflow(\s?|-?)icons/i, /var\s?\(/i, /google(\s?|-?)sans/i, /apple(\s?|-?)icons/i, /material(\s?|-?)icons/i, /web(\s?|-?)icon(\s?|-?)font/i, /apple(\s?|-?)color(\s?|-?)emoji/i, /segoe(\s?|-?)ui(\s?|-?)emoji/i, /segoe(\s?|-?)ui(\s?|-?)symbol/i];
   for (const fontSearch of notRealFontSearches) {
     if (fontSearch.test(fontName)) {
       return false;
     }
   }
-  return (!notRealFonts.includes(fontName))
+  return (!notRealFonts.includes(fontName.toLowerCase()))
 }
 
 function extractFontNamesFromLine(input) {

@@ -671,6 +671,8 @@ async function grabFonts(ticket, urlToFetch) {
     var primaryFonts = [];
     var fallbackFonts = [];
 
+    var totalFontsFound = 0;
+
     setTicketProgress(ticket, "Grabbing fonts...");
     if (logProgress) {
       console.log("Finding fontFaceInstances");
@@ -750,15 +752,18 @@ async function grabFonts(ticket, urlToFetch) {
             if (!(primaryFonts.some(font => (font["variants"].some(variant  => (variant["src"] == fontFaceURL)))))) {
               const existingFontDict = primaryFonts.find(font => font["name"] == fontFaceName);
               existingFontDict["variants"].push({"full_name": parsedFontName, "src": fontFaceURL, "weight": fontFaceWeightValue, "type": parsedFontFileType});
+              totalFontsFound += 1;
             }
           }
           else {
             primaryFonts.push({"name": fontFaceName, "variants": [{"full_name": parsedFontName, "src": fontFaceURL, "weight": fontFaceWeightValue, "type": parsedFontFileType}]});
+            totalFontsFound += 1;
           }
         }
         else {
           if (!primaryFonts.some(e => e["name"] == fontFaceName) &&!fallbackFonts.some(e => e["name"] == fontFaceName)) {
             fallbackFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName}]});
+            totalFontsFound += 1;
           }
         }
       }
@@ -776,12 +781,14 @@ async function grabFonts(ticket, urlToFetch) {
         var fontFaceName = fontFaceNames["primary"][j];
         if (!primaryFonts.some(e => e["name"] == fontFaceName) && !fallbackFonts.some(e => e["name"] == fontFaceName)) {
             fallbackFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName}]});
+            totalFontsFound += 1;
         }
       }
       for (let j = 0; j < fontFaceNames["fallback"].length; j++) {
         var fontFaceName = fontFaceNames["fallback"][j];
         if (!primaryFonts.some(e => e["name"] == fontFaceName) && !fallbackFonts.some(e => e["name"] == fontFaceName)) {
             fallbackFonts.push({"name": fontFaceName,  "variants": [{"full_name": fontFaceName}]});
+            totalFontsFound += 1;
         }
       }
     }
@@ -791,8 +798,8 @@ async function grabFonts(ticket, urlToFetch) {
 
     await page.close();
 
-    console.log("Success:", urlToFetch, "->", primaryFonts.length+fallbackFonts.length, "font" + ((primaryFonts.length+fallbackFonts.length == 1) ? "" : "s"), "found")
-    return {"stylesheets": {"external": externalCSSPages.length, "internal": internalCSSContent.length, "inline": inlineCSSContent.length}, "fonts": {"primary": primaryFonts, "fallback": fallbackFonts}};
+    console.log("Success:", urlToFetch, "->", totalFontsFound, "font" + ((totalFontsFound.length == 1) ? "" : "s"), "found")
+    return {"stylesheets": {"external": externalCSSPages.length, "internal": internalCSSContent.length, "inline": inlineCSSContent.length}, "fonts": {"primary": primaryFonts, "fallback": fallbackFonts}, "total": totalFontsFound};
   }
   catch(e) {
     console.log("Error (entire async):", e.message)

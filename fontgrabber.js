@@ -6,11 +6,13 @@ const woff2Parser = require('woff2-parser');
 const woffParser = require('woff-parser');
 const http = require('http');
 const https = require('https');
+const cors = require('cors')
 const { match } = require('assert');
 const { url } = require('inspector');
 
 var debug = (process.env.DEBUG);
 var logProgress = true;
+var useCorsProxy = false;
 
 var browser;
 
@@ -41,10 +43,18 @@ function ripTicket(ticket) {
   }
 }
 
+function corsProxyUrl(url) {
+  return "https://api.codetabs.com/v1/proxy/?quest=" + url;
+}
+
 function asyncRequest(url) {
+  if (useCorsProxy) {
+    url = corsProxyUrl(url);
+  }
   return new Promise(async function (resolve, reject) {
     try {
       const page = await browser.newPage();
+      await page.setBypassCSP(true);
       await page.setCacheEnabled(false);
       await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36");
       page.on('response', async response => {
@@ -70,6 +80,9 @@ function asyncRequest(url) {
 }
 
 function asyncRequestManual(url) {
+  if (useCorsProxy) {
+    url = corsProxyUrl(url);
+  }
   return new Promise(function (resolve, reject) {
     try {
       request({uri: url, headers: {"User-Agent": "Mozilla/5.0"}}, function (error, response, body) {
@@ -94,6 +107,9 @@ function asyncRequestManual(url) {
 }
 
 function fileTypeOfUrl(url) {
+  if (useCorsProxy) {
+    url = corsProxyUrl(url);
+  }
   return new Promise(function (resolve, reject) {
     if (/.otf(\??|\/)/.test(url)) {
       resolve({"type": "otf"});
@@ -291,6 +307,9 @@ function isValidHttpUrl(string) {
 }
 
 async function getFontFileBufferFromUrl(fontUrl) {
+  if (useCorsProxy) {
+    fontUrl = corsProxyUrl(fontUrl);
+  }
   return new Promise((resolve, reject) => {
     if (fontUrl.startsWith("https")) {
       https.get(fontUrl, function(res) {
@@ -444,7 +463,8 @@ async function grabFonts(ticket, urlToFetch) {
       console.log("Creating new page");
     }
     const page = await browser.newPage();
-    
+    await page.setBypassCSP(true);
+
     await page.setCacheEnabled(false);
 
     await page.setUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36")
@@ -558,18 +578,29 @@ async function grabFonts(ticket, urlToFetch) {
       console.log("Parsing externalCSSPages");
     }
     for (const externalCSSPage of externalCSSPages) {
+      var testblah = false
+      if (externalCSSPage.includes("wss")) {
+        testblah = true;
+      }
       try {
         var externalCSSPageContent;
-        if (externalCSSPage.includes("://fonts.googleapis.com")) {
+        if (true || externalCSSPage.includes("://fonts.googleapis.com")) {
           externalCSSPageContent = await asyncRequestManual(externalCSSPage);
         }
         else {
           externalCSSPageContent = await asyncRequest(externalCSSPage);
         }
-        var fontFacesInContent = doRegexAll(externalCSSPageContent, /@font-face\s?{((.|\n)*?)}/g);
-        var fontFamiliesInContent = doRegexAll(externalCSSPageContent, /font-family\s?:\s((.|\n)*?)(;|})/g);
+        var fontFacesInContent = doRegexAll(externalCSSPageContent, /@font-face\s?{((.|\n|\r)*?)}/g);
+        //fontFacesInContent = doRegexAll(externalCSSPageContent, /@fo((.|\n)*?){/g);
+        var fontFamiliesInContent = doRegexAll(externalCSSPageContent, /font-family\s?:\s?((.|\n|\r)*?)(;|})/g);
+        if (testblah) {
+          //return {"response": fontFacesInContent};
+        }
         for (const fontFaceInContent of fontFacesInContent) {
           fontFaceInstances.push({"url": externalCSSPage, "content": fontFaceInContent});
+          if (externalCSSPage.includes("wss")) {
+            console.log("Found!", externalCSSPage);
+          }
         }
         for (const fontFamilyInContent of fontFamiliesInContent) {
           fontFamilyInstances.push({"url": externalCSSPage, "content": fontFamilyInContent});
@@ -591,8 +622,8 @@ async function grabFonts(ticket, urlToFetch) {
     }
     for (const internalCSS of internalCSSContent) {
       try {
-        var fontFacesInContent = doRegexAll(internalCSS, /@font-face\s?{((.|\n)*?)}/g);
-        var fontFamiliesInContent = doRegexAll(internalCSS, /font-family\s?:\s((.|\n)*?)(;|})/g);
+        var fontFacesInContent = doRegexAll(internalCSS, /@font-face\s?{((.|\n|\r)*?)}/g);
+        var fontFamiliesInContent = doRegexAll(internalCSS, /font-family\s?:\s?((.|\n|\r)*?)(;|})/g);
         for (const fontFaceInContent of fontFacesInContent) {
           fontFaceInstances.push({"url": urlToFetch, "content": fontFaceInContent});
         }
@@ -618,14 +649,14 @@ async function grabFonts(ticket, urlToFetch) {
       const importedCSSPage = importedCSSPages[i];
       try {
         var importedCSSPageContent;
-        if (importedCSSPage.includes("://fonts.googleapis.com")) {
+        if (true || importedCSSPage.includes("://fonts.googleapis.com")) {
           importedCSSPageContent = await asyncRequestManual(importedCSSPage);
         }
         else {
           importedCSSPageContent = await asyncRequest(importedCSSPage);
         }
-        var fontFacesInContent = doRegexAll(importedCSSPageContent, /@font-face\s?{((.|\n)*?)}/g);
-        var fontFamiliesInContent = doRegexAll(importedCSSPageContent, /font-family\s?:\s((.|\n)*?)(;|})/g);
+        var fontFacesInContent = doRegexAll(importedCSSPageContent, /@font-face\s?{((.|\n|\r)*?)}/g);
+        var fontFamiliesInContent = doRegexAll(importedCSSPageContent, /font-family\s?:\s?((.|\n|\r)*?)(;|})/g);
         for (const fontFaceInContent of fontFacesInContent) {
           fontFaceInstances.push({"url": importedCSSPage, "content": fontFaceInContent});
         }
@@ -649,8 +680,8 @@ async function grabFonts(ticket, urlToFetch) {
     }
     for (const inlineCss of inlineCSSContent) {
       try {
-        var fontFacesInContent = doRegexAll(inlineCss, /@font-face\s?{((.|\n)*?)}/g);
-        var fontFamiliesInContent = doRegexAll(inlineCss, /font-family\s?:\s((.|\n)*?)(;|})/g);
+        var fontFacesInContent = doRegexAll(inlineCss, /@font-face\s?{((.|\n|\r)*?)}/g);
+        var fontFamiliesInContent = doRegexAll(inlineCss, /font-family\s?:\s?((.|\n|\r)*?)(;|})/g);
         for (const fontFaceInContent of fontFacesInContent) {
           fontFaceInstances.push({"url": urlToFetch, "content": fontFaceInContent});
         }
@@ -755,7 +786,14 @@ async function grabFonts(ticket, urlToFetch) {
             //[{name=fontname, variants=[ {weight=400, src = skjdnfkjnsdfn} ] }]
             if (!(primaryFonts.some(font => (font["variants"].some(variant  => (variant["src"] == fontFaceURL)))))) {
               const existingFontDict = primaryFonts.find(font => font["name"] == fontFaceName);
-              existingFontDict["variants"].push({"full_name": parsedFontName, "src": fontFaceURL, "weight": fontFaceWeightValue, "type": parsedFontFileType});
+              var indexToInsert = existingFontDict["variants"].length;
+              for (let j = 0; j < existingFontDict["variants"].length; j++) {
+                if (parseInt(fontFaceWeightValue) < existingFontDict["variants"][j]["weight"]) {
+                  indexToInsert = j;
+                  break;
+                }
+              }
+              existingFontDict["variants"].splice(indexToInsert, 0, {"full_name": parsedFontName, "src": fontFaceURL, "weight": fontFaceWeightValue, "type": parsedFontFileType});
               totalFontsFound += 1;
             }
           }
@@ -818,6 +856,7 @@ async function grabFonts(ticket, urlToFetch) {
 
 
 const app = express();
+app.use(cors());
 
 const hostname = '127.0.0.1';
 const port = 8080;
@@ -830,7 +869,13 @@ app.get('/fonts', async function(req, res) {
       console.log("Starting browser");
     }
     browser = await puppeteer.launch({
-      headless: true
+      headless: true,
+      args: [
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins',
+        '--disable-site-isolation-trials',
+        '--disable-features=BlockInsecurePrivateNetworkRequests'
+      ]
     });
   }
   var urlToFetch = req.query.url;
@@ -870,7 +915,7 @@ app.get('/ticket', async function(req, res) {
 });
 
 app.get('/tickets', async function(req, res) {
-  res.send({"tickets": tickets.length});
+  res.send({"tickets": (tickets ? tickets.length : 0)});
 });
 
 app.get('/progress', async function(req, res) {

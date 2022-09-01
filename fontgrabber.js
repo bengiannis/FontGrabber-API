@@ -211,15 +211,17 @@ function isRealFont(fontName) {
   if (!fontName) {
     return false;
   }
-  var notRealFonts = ["sans-serif", "serif", "cursive", "fantasy", "monospace", "initial", "inherit", "-apple-system", "blinkmacsystemfont", "system-ui"];
-  var notRealFontSearches = [/adobe(\s?|-?)notdef/i, /font(\s?|-?)awesome/i, /webflow(\s?|-?)icons/i, /var\s?\(/i, /google(\s?|-?)sans/i, /apple(\s?|-?)icons/i, /material(\s?|-?)icons/i, /web(\s?|-?)icon(\s?|-?)font/i, /apple(\s?|-?)color(\s?|-?)emoji/i, /segoe(\s?|-?)ui(\s?|-?)emoji/i, /segoe(\s?|-?)ui(\s?|-?)symbol/i];
-  for (const fontSearch of notRealFontSearches) {
+  var fakeFonts = ["sans-serif", "serif", "sans", "cursive", "fantasy", "monospace", "initial", "inherit", "-apple-system", "blinkmacsystemfont", "system-ui"];
+  var fakeFontSearches = [/adobe(\s?|-?)notdef/i, /font(\s?|-?)awesome/i, /webflow(\s?|-?)icons/i, /var\s?\(/i, /google(\s?|-?)sans/i, /apple(\s?|-?)icons/i, /material(\s?|-?)icons/i, /web(\s?|-?)icon(\s?|-?)font/i, /apple(\s?|-?)color(\s?|-?)emoji/i, /segoe(\s?|-?)ui(\s?|-?)emoji/i, /segoe(\s?|-?)ui(\s?|-?)symbol/i, /icomoon/i];
+  for (const fontSearch of fakeFontSearches) {
     if (fontSearch.test(fontName)) {
       return false;
     }
   }
-  return (!notRealFonts.includes(fontName.toLowerCase()))
+  return (!fakeFonts.includes(fontName.toLowerCase()))
 }
+
+
 
 function extractFontNamesFromLine(input) {
   //input: 'SF Pro', "Helvetica", Arial, sans-serif
@@ -232,7 +234,7 @@ function extractFontNamesFromLine(input) {
   var fallbackFontNames = [];
   for (let i = 0; i < individualFonts.length; i++) {
     const individualFont = individualFonts[i];
-    var fontName = individualFont.replace("!important", '').trim().replace(/['"]+/g, '');
+    var fontName = individualFont.replace("!important", '').replace("var(--", '').replace("var(", '').trim().replace(/['"\(\)]+/g, '');
     if (isRealFont(fontName)) {
       if (i == 0) {
         primaryFontNames.push(fontName);
@@ -577,10 +579,6 @@ async function grabFonts(ticket, urlToFetch) {
       console.log("Parsing externalCSSPages");
     }
     for (const externalCSSPage of externalCSSPages) {
-      var testblah = false
-      if (externalCSSPage.includes("wss")) {
-        testblah = true;
-      }
       try {
         var externalCSSPageContent;
         if (true || externalCSSPage.includes("://fonts.googleapis.com")) {
@@ -592,14 +590,8 @@ async function grabFonts(ticket, urlToFetch) {
         var fontFacesInContent = doRegexAll(externalCSSPageContent, /@font-face\s?{((.|\n|\r)*?)}/g);
         //fontFacesInContent = doRegexAll(externalCSSPageContent, /@fo((.|\n)*?){/g);
         var fontFamiliesInContent = doRegexAll(externalCSSPageContent, /font-family\s?:\s?((.|\n|\r)*?)(;|})/g);
-        if (testblah) {
-          //return {"response": fontFacesInContent};
-        }
         for (const fontFaceInContent of fontFacesInContent) {
           fontFaceInstances.push({"url": externalCSSPage, "content": fontFaceInContent});
-          if (externalCSSPage.includes("wss")) {
-            console.log("Found!", externalCSSPage);
-          }
         }
         for (const fontFamilyInContent of fontFamiliesInContent) {
           fontFamilyInstances.push({"url": externalCSSPage, "content": fontFamilyInContent});
@@ -780,7 +772,7 @@ async function grabFonts(ticket, urlToFetch) {
           /*if (!primaryFonts.some(e => (e["name"] == fontFaceName && e["src"] == fontFaceURL))) {
             primaryFonts.push({"name": fontFaceName, "full_name": parsedFontName, "src": fontFaceURL, "weight": fontFaceWeightValue});
           }*/
-          if (primaryFonts.some(e => (e["name"] == fontFaceName))) {
+          if (primaryFonts.some(e => (e["name"].toLowerCase() == fontFaceName.toLowerCase()))) {
             //font already in list
             //[{name=fontname, variants=[ {weight=400, src = skjdnfkjnsdfn} ] }]
             if (!(primaryFonts.some(font => (font["variants"].some(variant  => (variant["src"] == fontFaceURL)))))) {
@@ -802,7 +794,7 @@ async function grabFonts(ticket, urlToFetch) {
           }
         }
         else {
-          if (!primaryFonts.some(e => e["name"] == fontFaceName) &&!fallbackFonts.some(e => e["name"] == fontFaceName)) {
+          if (!primaryFonts.some(e => e["name"].toLowerCase() == fontFaceName.toLowerCase()) &&!fallbackFonts.some(e => e["name"].toLowerCase() == fontFaceName.toLowerCase())) {
             fallbackFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName}]});
             totalFontsFound += 1;
           }

@@ -812,14 +812,14 @@ async function grabFonts(ticket, urlToFetch) {
       var fontFaceNames = extractFontNamesFromLine(fontFamilyLine);
       for (let j = 0; j < fontFaceNames["primary"].length; j++) {
         var fontFaceName = fontFaceNames["primary"][j];
-        if (!primaryFonts.some(e => e["name"] == fontFaceName) && !fallbackFonts.some(e => e["name"] == fontFaceName)) {
+        if (!primaryFonts.some(e => e["name"].toLowerCase() == fontFaceName.toLowerCase()) && !fallbackFonts.some(e => e["name"].toLowerCase() == fontFaceName.toLowerCase())) {
             fallbackFonts.push({"name": fontFaceName, "variants": [{"full_name": fontFaceName}]});
             totalFontsFound += 1;
         }
       }
       for (let j = 0; j < fontFaceNames["fallback"].length; j++) {
         var fontFaceName = fontFaceNames["fallback"][j];
-        if (!primaryFonts.some(e => e["name"] == fontFaceName) && !fallbackFonts.some(e => e["name"] == fontFaceName)) {
+        if (!primaryFonts.some(e => e["name"].toLowerCase() == fontFaceName.toLowerCase()) && !fallbackFonts.some(e => e["name"].toLowerCase() == fontFaceName.toLowerCase())) {
             fallbackFonts.push({"name": fontFaceName,  "variants": [{"full_name": fontFaceName}]});
             totalFontsFound += 1;
         }

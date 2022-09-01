@@ -699,7 +699,6 @@ async function grabFonts(ticket, urlToFetch) {
     if (logProgress) {
       console.log("Finding fontFaceInstances");
     }
-    console.log(fontFaceInstances);
     for (let i = 0; i < fontFaceInstances.length; i++) {
       const fontFaceInstanceItem = fontFaceInstances[i];
       const fontFaceInstance = fontFaceInstanceItem["content"];

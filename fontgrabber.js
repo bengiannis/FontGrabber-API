@@ -211,7 +211,7 @@ function isRealFont(fontName) {
   if (!fontName) {
     return false;
   }
-  var fakeFonts = ["sans-serif", "serif", "sans", "cursive", "fantasy", "monospace", "initial", "inherit", "-apple-system", "blinkmacsystemfont", "system-ui"];
+  var fakeFonts = ["sans-serif", "serif", "sans", "cursive", "fantasy", "monospace", "initial", "inherit", "-apple-system", "blinkmacsystemfont", "system-ui", "notdef"];
   var fakeFontSearches = [/adobe(\s?|-?)notdef/i, /font(\s?|-?)awesome/i, /webflow(\s?|-?)icons/i, /var\s?\(/i, /google(\s?|-?)sans/i, /apple(\s?|-?)icons/i, /material(\s?|-?)icons/i, /web(\s?|-?)icon(\s?|-?)font/i, /apple(\s?|-?)color(\s?|-?)emoji/i, /segoe(\s?|-?)ui(\s?|-?)emoji/i, /segoe(\s?|-?)ui(\s?|-?)symbol/i, /icomoon/i];
   for (const fontSearch of fakeFontSearches) {
     if (fontSearch.test(fontName)) {
@@ -699,6 +699,7 @@ async function grabFonts(ticket, urlToFetch) {
     if (logProgress) {
       console.log("Finding fontFaceInstances");
     }
+    console.log(fontFaceInstances);
     for (let i = 0; i < fontFaceInstances.length; i++) {
       const fontFaceInstanceItem = fontFaceInstances[i];
       const fontFaceInstance = fontFaceInstanceItem["content"];
@@ -747,14 +748,13 @@ async function grabFonts(ticket, urlToFetch) {
           var parsedFontName = await parseFontNameFromUrl(fontFaceURL);
           if (parsedFontName && !("error" in parsedFontName) && (parsedFontName["name"].toLowerCase() != "undefined") && (![".\x7F"].includes(parsedFontName["name"]))) {
             parsedFontName = parsedFontName["name"];
+            if (!isRealFont(parsedFontName)) {
+              continue;
+            }
           }
           else {
             console.log("Error parsing font name:", parsedFontName["error"]);
             parsedFontName = fontFaceName + " (" + fontFaceWeightValue + ")";
-          }
-
-          if (!isRealFont(parsedFontName)) {
-            continue;
           }
 
           var parsedFontFileType = "undefined"; 

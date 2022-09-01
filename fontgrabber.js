@@ -776,7 +776,7 @@ async function grabFonts(ticket, urlToFetch) {
             //font already in list
             //[{name=fontname, variants=[ {weight=400, src = skjdnfkjnsdfn} ] }]
             if (!(primaryFonts.some(font => (font["variants"].some(variant  => (variant["src"] == fontFaceURL)))))) {
-              const existingFontDict = primaryFonts.find(font => font["name"] == fontFaceName);
+              const existingFontDict = primaryFonts.find(font => font["name"].toLowerCase() == fontFaceName.toLowerCase());
               var indexToInsert = existingFontDict["variants"].length;
               for (let j = 0; j < existingFontDict["variants"].length; j++) {
                 if (parseInt(fontFaceWeightValue) < existingFontDict["variants"][j]["weight"]) {

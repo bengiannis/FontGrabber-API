@@ -11,7 +11,7 @@ const { url } = require('inspector');
 
 var debug = (process.env.DEBUG);
 var logProgress = true;
-var useCorsProxy = false;
+var useCorsProxy = true;
 
 var browser;
 
